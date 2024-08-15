@@ -1,28 +1,32 @@
-import { Request, Response } from "express";
-import bcrypt from "bcryptjs";
+import { NextFunction, Request, Response } from "express";
 
+import { hashPassword, validatePassword } from "../lib/bcryptjs";
+import { generateToken } from "../lib/jwt";
+import { RequestWithUser } from "../middlewares/authentication";
+import { CustomError } from "../middlewares/errors";
 import User from "../models/user.model";
-import { RequestWithUser, generateToken } from "../middlewares/authentication";
 
-export const getAllUsers = async (req: Request, res: Response) => {
+export const getAllUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const users = await User.findAll();
 
     return res.status(200).json({ users });
   } catch (error) {
-    console.log("getAllUsers error", error);
-    return res.status(500).json({ message: error });
+    next(error);
   }
 };
 
-export const postUser = async (req: Request, res: Response) => {
+export const postUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { name, email, password } = req.body;
-
-    if (!name) return res.status(400).json({ message: "Name is required." });
-    if (!email) return res.status(400).json({ message: "Email is required." });
-    if (!password)
-      return res.status(400).json({ message: "Password is required." });
 
     const existedUser = await User.findOne({
       where: {
@@ -30,14 +34,10 @@ export const postUser = async (req: Request, res: Response) => {
       },
     });
 
-    if (existedUser) {
-      return res
-        .status(400)
-        .json({ message: "Email is already registered before." });
-    }
+    if (existedUser)
+      throw new CustomError(400, "Email is already registered before.");
 
-    const salt = bcrypt.genSaltSync(10);
-    const hashedPassword = bcrypt.hashSync(password, salt);
+    const hashedPassword = hashPassword(password);
 
     const newUser = await User.create({
       name,
@@ -52,50 +52,48 @@ export const postUser = async (req: Request, res: Response) => {
       user: newUser,
     });
   } catch (error) {
-    console.log("postUser error", error);
-    return res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 
-export const postLogin = async (req: Request, res: Response) => {
+export const postLogin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { email, password } = req.body;
-
-    if (!email) return res.status(400).json({ message: "Email is required." });
-    if (!password)
-      return res.status(400).json({ message: "Password is required." });
 
     const user = await User.scope("withPassword").findOne({
       where: { email },
       raw: true,
     });
 
-    if (!user) {
-      return res
-        .status(401)
-        .json({ message: "Email or password is not valid." });
-    }
+    if (!user) throw new CustomError(401, "Email or password is not valid.");
 
     // Verify Password
-    if (!bcrypt.compareSync(password, user.password)) {
-      return res
-        .status(401)
-        .json({ message: "Email or password is not valid." });
+    if (!validatePassword(password, user.password)) {
+      throw new CustomError(401, "Email or password is not valid.");
     }
 
     const token = generateToken(user);
 
+    user.password = undefined;
+
     return res.status(200).json({
       message: "Login successfull.",
-      user: { ...user, token, password: undefined },
+      user: { ...user, token },
     });
   } catch (error) {
-    console.log("postLogin error", error);
-    return res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 
-export const getProfile = async (req: RequestWithUser, res: Response) => {
+export const getProfile = async (
+  req: RequestWithUser,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { userId } = req;
 
@@ -105,54 +103,53 @@ export const getProfile = async (req: RequestWithUser, res: Response) => {
       },
     });
 
-    if (!user) {
-      return res.status(400).json({ message: "User not found." });
-    }
+    if (!user) throw new CustomError(404, "User not found.");
 
-    return res.status(200).json({ user });
+    return res.status(200).json({
+      message: "Get profile successful.",
+      user,
+    });
   } catch (error) {
-    console.log("getProfile error", error);
-    return res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 
-export const editProfile = async (req: RequestWithUser, res: Response) => {
+export const editProfile = async (
+  req: RequestWithUser,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { userId } = req;
     const { name } = req.body;
 
-    if (!name) return res.status(400).json({ message: "Name is required." });
-
     const user = await User.findOne({
       where: {
         id: userId,
       },
     });
 
-    if (!user) {
-      return res.status(400).json({ message: "User not found." });
-    }
+    if (!user) throw new CustomError(404, "User not found.");
 
     const updatedUser = await user.update({ name });
 
-    return res
-      .status(201)
-      .json({ message: "Edit Profile Success!", user: updatedUser });
+    return res.status(200).json({
+      message: "Edit profile successful.",
+      user: updatedUser,
+    });
   } catch (error) {
-    console.log("editProfile error", error);
-    return res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };
 
-export const changePassword = async (req: RequestWithUser, res: Response) => {
+export const changePassword = async (
+  req: RequestWithUser,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { userId } = req;
-    const { password, newPassword } = req.body;
-
-    if (!password)
-      return res.status(400).json({ message: "Password is required." });
-    if (!newPassword)
-      return res.status(400).json({ message: "New password is required." });
+    const { currentPassword, newPassword } = req.body;
 
     const user = await User.scope("withPassword").findOne({
       where: {
@@ -160,27 +157,23 @@ export const changePassword = async (req: RequestWithUser, res: Response) => {
       },
     });
 
-    if (!user) {
-      return res.status(400).json({ message: "User not found." });
+    if (!user) throw new CustomError(404, "User not found.");
+
+    if (!validatePassword(currentPassword, user.password)) {
+      throw new CustomError(401, "Password invalid.");
     }
 
-    if (!bcrypt.compareSync(password, user.password)) {
-      return res.status(401).json({ message: "Password invalid." });
-    }
-
-    const salt = bcrypt.genSaltSync(10);
-    const hashedPassword = bcrypt.hashSync(newPassword, salt);
+    const hashedPassword = hashPassword(newPassword);
 
     const updatedUser = await user.update({ password: hashedPassword });
 
     updatedUser.password = undefined;
 
-    return res.status(201).json({
-      message: "Change Password Success!",
+    return res.status(200).json({
+      message: "Change password successful.",
       user: updatedUser,
     });
   } catch (error) {
-    console.log("changePassword error", error);
-    return res.status(500).json({ message: "Server error." });
+    next(error);
   }
 };

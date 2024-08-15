@@ -6,6 +6,7 @@ import { sequelize } from "./src/models";
 import indexRouter from "./src/routes/index.router";
 import userRouter from "./src/routes/user.router";
 import todoRouter from "./src/routes/todo.router";
+import { errorHandler } from "./src/middlewares/errors";
 
 dotenv.config();
 
@@ -20,6 +21,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use("/api/v1", indexRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/todos", todoRouter);
+
+app.use(errorHandler);
 
 sequelize
   .sync({
