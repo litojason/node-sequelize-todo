@@ -94,6 +94,33 @@ export const updateTodo = async (
   }
 };
 
+export const completeTodo = async (
+  req: RequestWithUser,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId } = req;
+    const { isCompleted } = req.body;
+    const { id } = req.params;
+
+    const todo = await Todo.findOne({ where: { id } });
+
+    if (!todo) throw new CustomError(404, "Todo not found.");
+    if (todo.userId !== userId)
+      throw new CustomError(403, "Forbidden to complete other user todo.");
+
+    const updatedTodo = await todo.update({ isCompleted });
+
+    return res.status(201).json({
+      message: "Complete todo successful.",
+      todo: updatedTodo,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const deleteTodo = async (
   req: RequestWithUser,
   res: Response,

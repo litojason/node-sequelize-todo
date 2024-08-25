@@ -2,7 +2,10 @@ import { Router } from "express";
 
 import { isAuthenticated } from "../middlewares/authentication";
 import * as todoController from "../controllers/todo.controller";
-import { validateTodo } from "../validators/todo.validator";
+import {
+  validateCompleteTodo,
+  validateTodo,
+} from "../validators/todo.validator";
 
 const todoRouter = Router();
 
@@ -14,6 +17,12 @@ todoRouter.put(
   isAuthenticated,
   validateTodo,
   todoController.updateTodo
+);
+todoRouter.put(
+  "/complete/:id",
+  isAuthenticated,
+  validateCompleteTodo,
+  todoController.completeTodo
 );
 todoRouter.delete("/:id", isAuthenticated, todoController.deleteTodo);
 

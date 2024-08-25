@@ -19,3 +19,14 @@ const todoSchema = yup.object().shape({
     .label("Is Completed"),
 });
 export const validateTodo = validateRequest(todoSchema);
+
+export type CompleteTodoFormData = {
+  isCompleted: boolean;
+};
+const completeTodoSchema = yup.object().shape({
+  isCompleted: yup
+    .boolean()
+    .required("Is Completed is required.")
+    .label("Is Completed"),
+});
+export const validateCompleteTodo = validateRequest(completeTodoSchema);
