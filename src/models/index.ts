@@ -1,15 +1,9 @@
-import { Sequelize } from "sequelize";
+import { Dialect, Sequelize } from "sequelize";
+import { DB_DIALECT, DB_HOST, DB_NAME, DB_PASS, DB_USER } from "../config/env";
 
-const { NODE_ENV } = process.env;
-
-const env = NODE_ENV || "development";
-const config = require(__dirname + "/../config/database.ts")[env];
-
-const sequelize = config.url
-  ? new Sequelize(config.url, config)
-  : new Sequelize(config.database, config.username, config.password, {
-      dialect: config.dialect,
-      host: config.host,
-    });
+const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
+  dialect: (DB_DIALECT as Dialect) || "mysql",
+  host: DB_HOST,
+});
 
 export { Sequelize, sequelize };

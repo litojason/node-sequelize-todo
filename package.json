@@ -5,7 +5,9 @@
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/app.ts",
-    "dev": "nodemon app.ts",
+    "dev": "NODE_ENV=development nodemon app.ts",
+    "staging": "NODE_ENV=staging nodemon app.ts",
+    "prod": "tsx --env-file=.env.production app.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -29,6 +31,7 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.12.12",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.0",
     "typescript": "^5.4.5"
   }
 }

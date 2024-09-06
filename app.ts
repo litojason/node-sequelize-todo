@@ -1,17 +1,14 @@
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
 
+import { PORT } from "./src/config/env";
 import { sequelize } from "./src/models";
 import indexRouter from "./src/routes/index.router";
 import userRouter from "./src/routes/user.router";
 import todoRouter from "./src/routes/todo.router";
 import { errorHandler } from "./src/middlewares/errors";
 
-dotenv.config();
-
 const app = express();
-const PORT = process.env.PORT;
 
 app.use(cors());
 
