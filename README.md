@@ -1,6 +1,6 @@
 # Node Sequelize Todo
 
-Todo API built with Typescript, Node JS, Express, MySQL, Sequelize.
+Todo API built with [Typescript](https://www.typescriptlang.org/), [Node JS](https://nodejs.org/en), [Express](https://expressjs.com/), [MySQL](https://www.mysql.com/), [Sequelize](https://sequelize.org/).
 
 ## Example Project With This API
 
